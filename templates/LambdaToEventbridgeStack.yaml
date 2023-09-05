@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Example DMSC template: LambdaToEventbridgeStack
+Description: "Example DMSC template: LambdaToEventbridgeStack"
 Metadata:
   License:
     Description: |

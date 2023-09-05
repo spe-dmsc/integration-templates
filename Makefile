@@ -1,5 +1,11 @@
 YEAR = $(shell date +"%Y")
-define LICENSE
+define HEADER
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Example DMSC template: &&template&&"
+Metadata:
+  License:
+    Description: |
       MIT License
 
       Copyright (c) $(YEAR) Sony Pictures Entertainment.
@@ -22,18 +28,12 @@ define LICENSE
       OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
       SOFTWARE.
 endef
-export LICENSE
+export HEADER
 
 default:
 	@echo Generating new Cloudformation templates...
 	@cdk list | while IFS= read -r template; do \
-		echo '---' > templates/$$template.yaml && \
-		echo 'AWSTemplateFormatVersion: 2010-09-09' >> templates/$$template.yaml && \
-		echo "Description: Example DMSC template: $$template" >> templates/$$template.yaml && \
-		echo 'Metadata:' >> templates/$$template.yaml && \
-		echo '  License:' >> templates/$$template.yaml && \
-		echo '    Description: |' >> templates/$$template.yaml && \
-		echo "$$LICENSE" >> templates/$$template.yaml && \
+		echo "$$HEADER" | sed "s/&&template&&/$$template/" > templates/$$template.yaml && \
 		cdk synth "$$template" >> templates/$$template.yaml; \
 	done
 	@echo Done!

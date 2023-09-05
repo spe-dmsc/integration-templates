@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Example DMSC template: StepfunctionsToEventbridgeStack
+Description: "Example DMSC template: StepfunctionsToEventbridgeStack"
 Metadata:
   License:
     Description: |
