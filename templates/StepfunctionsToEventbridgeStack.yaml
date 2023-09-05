@@ -1,0 +1,103 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Example DMSC template: StepfunctionsToEventbridgeStack
+Metadata:
+  License:
+    Description: |
+      MIT License
+
+      Copyright (c) 2023 Sony Pictures Entertainment.
+
+      Permission is hereby granted, free of charge, to any person obtaining a copy
+      of this software and associated documentation files (the "Software"), to deal
+      in the Software without restriction, including without limitation the rights
+      to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+      copies of the Software, and to permit persons to whom the Software is
+      furnished to do so, subject to the following conditions:
+
+      The above copyright notice and this permission notice shall be included in all
+      copies or substantial portions of the Software.
+
+      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+      IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+      AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+      LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+      OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+      SOFTWARE.
+Parameters:
+  EventServiceName:
+    Type: String
+    Description: An identifier of your service. This will be provided to you by SPE DMSC
+  EventDetailType:
+    Type: String
+    Description: The type of event that is being published. This will populate the "DetailType" parameter of the EventBridge PutEvents API call
+  DestinationEventBusArn:
+    Type: String
+    Description: This is the ARN of the EventBridge Bus that the StepFunction will publish to.  Provided by SPE DMSC.
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+Resources:
+  RegistryPublisherStateMachineRoleA5951727:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+        Version: "2012-10-17"
+  RegistryPublisherStateMachineRoleDefaultPolicyAED8F602:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: events:PutEvents
+            Effect: Allow
+            Resource:
+              Ref: DestinationEventBusArn
+        Version: "2012-10-17"
+      PolicyName: RegistryPublisherStateMachineRoleDefaultPolicyAED8F602
+      Roles:
+        - Ref: RegistryPublisherStateMachineRoleA5951727
+  RegistryPublisherStateMachineBB74FE57:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString:
+        Fn::Join:
+          - ""
+          - - '{"StartAt":"Publish message as EventBridge Event","States":{"Publish message as EventBridge Event":{"End":true,"Type":"Task","Resource":"arn:'
+            - Ref: AWS::Partition
+            - :states:::events:putEvents","Parameters":{"Entries":[{"Detail.$":"$","DetailType":"
+            - Ref: EventDetailType
+            - '","EventBusName":"'
+            - Ref: DestinationEventBusArn
+            - '","Source":"'
+            - Ref: EventServiceName
+            - '"}]}}}}'
+      RoleArn:
+        Fn::GetAtt:
+          - RegistryPublisherStateMachineRoleA5951727
+          - Arn
+    DependsOn:
+      - RegistryPublisherStateMachineRoleDefaultPolicyAED8F602
+      - RegistryPublisherStateMachineRoleA5951727
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+Rules:
+  CheckBootstrapVersion:
+    Assertions:
+      - Assert:
+          Fn::Not:
+            - Fn::Contains:
+                - - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+                  - "5"
+                - Ref: BootstrapVersion
+        AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.
+
