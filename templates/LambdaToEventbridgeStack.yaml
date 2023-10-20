@@ -35,10 +35,6 @@ Parameters:
   DestinationEventBusArn:
     Type: String
     Description: This is the ARN of the EventBridge Bus that the StepFunction will publish to.  Provided by SPE DMSC.
-  BootstrapVersion:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /cdk-bootstrap/hnb659fds/version
-    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
 Resources:
   ForwardEventToEventbridgeServiceRoleE8638EE1:
     Type: AWS::IAM::Role
@@ -106,17 +102,4 @@ Resources:
     DependsOn:
       - ForwardEventToEventbridgeServiceRoleDefaultPolicyC38C4B70
       - ForwardEventToEventbridgeServiceRoleE8638EE1
-Rules:
-  CheckBootstrapVersion:
-    Assertions:
-      - Assert:
-          Fn::Not:
-            - Fn::Contains:
-                - - "1"
-                  - "2"
-                  - "3"
-                  - "4"
-                  - "5"
-                - Ref: BootstrapVersion
-        AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.
 
