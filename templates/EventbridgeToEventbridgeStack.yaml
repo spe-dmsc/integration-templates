@@ -1,0 +1,130 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Example DMSC template: EventbridgeToEventbridgeStack"
+Metadata:
+  License:
+    Description: |
+      MIT License
+
+      Copyright (c) 2023 Sony Pictures Entertainment.
+
+      Permission is hereby granted, free of charge, to any person obtaining a copy
+      of this software and associated documentation files (the "Software"), to deal
+      in the Software without restriction, including without limitation the rights
+      to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+      copies of the Software, and to permit persons to whom the Software is
+      furnished to do so, subject to the following conditions:
+
+      The above copyright notice and this permission notice shall be included in all
+      copies or substantial portions of the Software.
+
+      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+      IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+      AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+      LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+      OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+      SOFTWARE.
+Parameters:
+  EventBusName:
+    Type: String
+    Description: Name of the custom event bus that you will receive events on
+  DMSCPublisherAccount:
+    Type: String
+    Description: Account ID that is permitted to forward events to the custom event bus
+  DMSCSource:
+    Type: String
+    Description: Only accept events with the "source" set to this value
+  TargetSqsQueueArn:
+    Type: String
+    Default: ""
+    Description: OPTIONAL. ARN of an SQS Queue to forward events to
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+Resources:
+  EventBus7B8748AA:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name:
+        Ref: EventBusName
+  EventBusPolicy0086C1C6:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      EventBusName:
+        Ref: EventBus7B8748AA
+      Statement:
+        Action: events:PutEvents
+        Condition:
+          StringLike:
+            events:source:
+              - Ref: DMSCSource
+        Effect: Allow
+        Principal:
+          AWS:
+            Fn::Join:
+              - ""
+              - - "arn:"
+                - Ref: AWS::Partition
+                - ":iam::"
+                - Ref: DMSCPublisherAccount
+                - :root
+        Resource:
+          Fn::GetAtt:
+            - EventBus7B8748AA
+            - Arn
+        Sid:
+          Fn::Join:
+            - ""
+            - - AllowPublishingFrom
+              - Ref: DMSCPublisherAccount
+      StatementId:
+        Fn::Join:
+          - ""
+          - - AllowPublishingFrom
+            - Ref: DMSCPublisherAccount
+  DMSCEventsRule1C872D09:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName:
+        Ref: EventBus7B8748AA
+      EventPattern:
+        source:
+          - Ref: DMSCSource
+        detail-type:
+          - asset update
+      Name: dmsc-asset-events
+      State: ENABLED
+      Targets:
+        - Arn:
+            Ref: TargetSqsQueueArn
+          Id: Target0
+    Condition: CreateRuleTargetCondition
+Conditions:
+  CreateRuleTargetCondition:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: TargetSqsQueueArn
+          - ""
+Outputs:
+  EventBusArn:
+    Description: ARN of the Custom EventBus. Share this with the DMSC team to complete the integration.
+    Value:
+      Fn::GetAtt:
+        - EventBus7B8748AA
+        - Arn
+Rules:
+  CheckBootstrapVersion:
+    Assertions:
+      - Assert:
+          Fn::Not:
+            - Fn::Contains:
+                - - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+                  - "5"
+                - Ref: BootstrapVersion
+        AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.
+
